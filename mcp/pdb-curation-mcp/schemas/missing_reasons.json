@@ -1,0 +1,107 @@
+{
+  "no_modeled_ligand_apo": {
+    "label_zh": "无配体：apo",
+    "label_en": "No modeled ligand: apo",
+    "applies_to_fields": ["ligand"],
+    "evidence_required": "RCSB entry and primary paper structure description",
+    "default_status": "accepted_no_affinity_context"
+  },
+  "no_inhibitor_ligand_only_cofactor": {
+    "label_zh": "无抑制剂配体：仅辅因子",
+    "label_en": "No inhibitor ligand: cofactor only",
+    "applies_to_fields": ["ligand"],
+    "evidence_required": "RCSB non-polymer entities plus paper methods",
+    "default_status": "accepted_no_affinity_context"
+  },
+  "modeled_ligand_is_additive": {
+    "label_zh": "配体为结晶添加物或溶剂，不属于抑制剂",
+    "label_en": "Modeled ligand is a crystallization additive or solvent",
+    "applies_to_fields": ["ligand"],
+    "evidence_required": "Chemical component identity and paper context",
+    "default_status": "rejected_non_inhibitor"
+  },
+  "no_quantitative_value": {
+    "label_zh": "无数值：原文未报告定量活性",
+    "label_en": "No quantitative value reported",
+    "applies_to_fields": ["affinity_value"],
+    "evidence_required": "Full text and relevant tables/figures inspected",
+    "default_status": "accepted_no_quantitative_context"
+  },
+  "single_concentration_only": {
+    "label_zh": "无数值：仅有单浓度抑制",
+    "label_en": "Single concentration or percent inhibition only",
+    "applies_to_fields": ["affinity_value"],
+    "evidence_required": "Exact concentration, readout and source locator",
+    "default_status": "accepted_non_numeric_context"
+  },
+  "qualitative_inhibition_only": {
+    "label_zh": "无数值：仅有定性抑制证据",
+    "label_en": "Qualitative inhibition only",
+    "applies_to_fields": ["affinity_value"],
+    "evidence_required": "Figure or gel panel plus exact condition and locator",
+    "default_status": "accepted_non_numeric_context"
+  },
+  "censored_value_only": {
+    "label_zh": "无数值：原文仅报告删失阈值",
+    "label_en": "Censored threshold only",
+    "applies_to_fields": ["affinity_value"],
+    "evidence_required": "Exact qualifier, threshold, unit and source locator",
+    "default_status": "accepted_context_only"
+  },
+  "non_affinity_measurement_only": {
+    "label_zh": "无数值：仅有非亲和力测量（如Tm）",
+    "label_en": "Non-affinity measurement only",
+    "applies_to_fields": ["affinity_value"],
+    "evidence_required": "Measurement type, value and source locator",
+    "default_status": "accepted_context_only"
+  },
+  "cell_phenotype_only": {
+    "label_zh": "无数值：仅有细胞表型数据，非靶点亲和力",
+    "label_en": "Cell phenotype only, not target affinity",
+    "applies_to_fields": ["affinity_value"],
+    "evidence_required": "Cell line, virus, endpoint and source locator",
+    "default_status": "accepted_phenotype_context"
+  },
+  "metal_or_rna_binding_only": {
+    "label_zh": "无数值：仅有金属或RNA结合数据",
+    "label_en": "Metal or RNA binding only",
+    "applies_to_fields": ["affinity_value"],
+    "evidence_required": "Exact entity, method and construct",
+    "default_status": "accepted_context_only"
+  },
+  "model_estimate_only": {
+    "label_zh": "无数值：仅有模型外推值",
+    "label_en": "Model-derived estimate only",
+    "applies_to_fields": ["affinity_value"],
+    "evidence_required": "Model equation and calibration source",
+    "default_status": "accepted_model_context"
+  },
+  "ambiguous_compound_identity": {
+    "label_zh": "无数值：化合物身份无法精确对应",
+    "label_en": "Compound identity unresolved",
+    "applies_to_fields": ["ligand", "affinity_value"],
+    "evidence_required": "HET, InChIKey, paper table and construct evidence",
+    "default_status": "blocked_identity"
+  },
+  "mutation_or_construct_mismatch": {
+    "label_zh": "无数值：突变或构体与PDB状态不匹配",
+    "label_en": "Mutation or construct mismatch",
+    "applies_to_fields": ["affinity_value", "target", "sequence"],
+    "evidence_required": "Paper mutation plus deposited construct comparison",
+    "default_status": "blocked_scope"
+  },
+  "access_blocked": {
+    "label_zh": "无数值：原文或补充材料无法访问",
+    "label_en": "Primary source inaccessible",
+    "applies_to_fields": ["ligand", "affinity_value", "target", "sequence", "other"],
+    "evidence_required": "Blocker ledger with access fallback attempts",
+    "default_status": "blocked_source"
+  },
+  "database_only_lead": {
+    "label_zh": "无数值：仅有数据库线索",
+    "label_en": "Database lead only",
+    "applies_to_fields": ["ligand", "affinity_value", "target", "sequence", "other"],
+    "evidence_required": "Exact query, export scope and SHA-256",
+    "default_status": "needs_primary_source"
+  }
+}

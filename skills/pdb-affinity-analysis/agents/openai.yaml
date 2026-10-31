@@ -1,0 +1,4 @@
+interface:
+  display_name: "PDB affinity analysis"
+  short_description: "Read primary sources and adjudicate affinity evidence"
+  default_prompt: "Use $pdb-affinity-analysis to read the collected full text, supplement and patent evidence, then classify entity roles, assay endpoints, mutations and provenance."

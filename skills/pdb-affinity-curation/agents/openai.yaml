@@ -1,0 +1,4 @@
+interface:
+  display_name: "PDB affinity curation"
+  short_description: "Orchestrate full-text-first PDB affinity curation"
+  default_prompt: "Use $pdb-affinity-curation to route PDB affinity work through evidence harvesting, full-text analysis, and validated output. Do not accept database-only or sequence-inferred affinity."

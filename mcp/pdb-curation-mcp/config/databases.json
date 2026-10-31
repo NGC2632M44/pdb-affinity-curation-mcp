@@ -1,0 +1,125 @@
+{
+  "principle": "A database hit is a discovery lead. Accepted affinity or no-affinity evidence still requires primary text, supplement or patent review with a locator.",
+  "databases": [
+    {
+      "name": "RCSB PDB",
+      "kind": "public_api",
+      "url": "https://data.rcsb.org/graphql",
+      "access": "available_without_login",
+      "use_for": [
+        "primary citation",
+        "entry title",
+        "polymer entities",
+        "non-polymer HETs",
+        "sequence",
+        "mutation annotations"
+      ]
+    },
+    {
+      "name": "Europe PMC",
+      "kind": "public_api",
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest",
+      "access": "available_without_login",
+      "use_for": [
+        "citation resolution",
+        "open-access full text",
+        "reference discovery"
+      ]
+    },
+    {
+      "name": "SciFinder-n",
+      "kind": "licensed_web",
+      "url": "https://scifinder-n.cas.org/",
+      "access": "requires_institution_login",
+      "preferred_route": "web UI and structured export",
+      "export_route": "Pharmacology Data -> Download Assay Results",
+      "api": {
+        "docs": "https://github.com/acs-cas/scifinder-api",
+        "status": "requires_client_id_redirect_uri_and_entitlement"
+      },
+      "notes": [
+        "Do not store credentials in MCP configuration or ledgers.",
+        "Use exact InChIKey or exact substance before DOI/compound.",
+        "The ACS PDF viewer may live in a closed shadow root and block automated PDF save; use structured export and visual review instead.",
+        "Record a no-hit only within the stated query and export scope."
+      ]
+    },
+    {
+      "name": "CAS BioFinder",
+      "kind": "licensed_web",
+      "url": "https://biofinder.cas.org/",
+      "access": "requires_institution_login",
+      "use_for": [
+        "substance identity",
+        "pharmacology screens",
+        "cross-reference discovery"
+      ]
+    },
+    {
+      "name": "Reaxys",
+      "kind": "licensed_web",
+      "url": "https://www.reaxys.com/",
+      "access": "requires_institution_login",
+      "preferred_route": "web UI and bioactivity export",
+      "api": {
+        "info": "https://www.elsevier.support/reaxys/answer/required-login-customers-using-api-with-ip-access",
+        "status": "requires_entitlement"
+      },
+      "notes": [
+        "Use exact structure and retain the registry number and citation.",
+        "Do not transfer analogue activity to a deposited fragment.",
+        "Record export SHA-256 and export date."
+      ]
+    },
+    {
+      "name": "ChEMBL",
+      "kind": "public_api",
+      "url": "https://www.ebi.ac.uk/chembl/api/data",
+      "access": "available_without_login",
+      "use_for": [
+        "activity cross-check",
+        "target and assay metadata",
+        "molecule identity"
+      ]
+    },
+    {
+      "name": "BindingDB",
+      "kind": "public_api",
+      "url": "https://bindingdb.org/",
+      "access": "available_without_login",
+      "use_for": [
+        "activity cross-check",
+        "target and assay metadata"
+      ]
+    },
+    {
+      "name": "PubChem PUG REST",
+      "kind": "public_api",
+      "url": "https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest",
+      "access": "available_without_login",
+      "use_for": [
+        "chemical identity",
+        "InChIKey and synonym verification"
+      ]
+    },
+    {
+      "name": "Google Patents / Patentscope / Espacenet",
+      "kind": "public_web",
+      "urls": [
+        "https://patents.google.com/",
+        "https://patentscope.wipo.int/",
+        "https://worldwide.espacenet.com/"
+      ],
+      "access": "public_search_but_full_pdf_may_be_blocked",
+      "use_for": [
+        "patent candidate discovery",
+        "example and table extraction",
+        "compound/property cross-check"
+      ],
+      "notes": [
+        "A search snippet is not patent evidence.",
+        "Record the exact publication number, example, page and rendered visual receipt."
+      ]
+    }
+  ]
+}

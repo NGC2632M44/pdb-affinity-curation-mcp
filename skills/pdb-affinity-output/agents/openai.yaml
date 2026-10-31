@@ -1,0 +1,4 @@
+interface:
+  display_name: "PDB affinity output"
+  short_description: "Validate, reconcile and export curated affinity records"
+  default_prompt: "Use $pdb-affinity-output to validate and reconcile the adjudicated records, then produce traceable CSV, Excel and review outputs."

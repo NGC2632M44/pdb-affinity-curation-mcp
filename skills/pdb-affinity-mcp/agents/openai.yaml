@@ -1,0 +1,15 @@
+interface:
+  display_name: "PDB Affinity MCP"
+  short_description: "Traceable PDB affinity and missing-data curation"
+  default_prompt: "Use $pdb-affinity-mcp to curate PDB-linked affinity data with full-text evidence and an explicit reason for every missing field."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "pdb-curation"
+      description: "Local stdio PDB curation MCP"
+      transport: "stdio"
+
+policy:
+  allow_implicit_invocation: true
+

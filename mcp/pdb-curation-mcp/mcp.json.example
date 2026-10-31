@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "pdb-curation": {
+      "command": "python",
+      "args": [
+        "/path/to/pdb-affinity-curation-mcp/mcp/pdb-curation-mcp/server.py"
+      ],
+      "env": {
+        "PDB_SKILL_ROOT": "/path/to/pdb-affinity-curation-mcp/skills",
+        "PYTHONUTF8": "1"
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "skill_root": "/path/to/pdb-affinity-curation-mcp/skills",
+  "workspace": "/path/to/curation-workspace",
+  "local_source_dirs": [
+    "/path/to/Zotero/storage",
+    "/path/to/Downloads"
+  ],
+  "known_project_paths": {}
+}

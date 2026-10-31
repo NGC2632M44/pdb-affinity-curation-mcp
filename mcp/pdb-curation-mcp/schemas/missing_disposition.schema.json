@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PDB curation missing disposition",
+  "type": "object",
+  "required": [
+    "Record_ID",
+    "PDB_ID",
+    "Field_Name",
+    "Disposition",
+    "Reason_Code",
+    "Search_Scope",
+    "Sources_Checked",
+    "Status",
+    "Checked_At"
+  ],
+  "properties": {
+    "Record_ID": {"type": "string"},
+    "PDB_ID": {"type": "string", "pattern": "^[0-9A-Z]{4}$"},
+    "Ligand_ID": {"type": "string"},
+    "Context": {"type": "string"},
+    "Field_Name": {
+      "enum": ["ligand", "affinity_value", "target", "sequence", "other"]
+    },
+    "Disposition": {
+      "enum": ["no_ligand", "no_value", "not_applicable"]
+    },
+    "Reason_Code": {
+      "enum": [
+        "no_modeled_ligand_apo",
+        "no_inhibitor_ligand_only_cofactor",
+        "modeled_ligand_is_additive",
+        "no_quantitative_value",
+        "single_concentration_only",
+        "qualitative_inhibition_only",
+        "censored_value_only",
+        "non_affinity_measurement_only",
+        "cell_phenotype_only",
+        "metal_or_rna_binding_only",
+        "model_estimate_only",
+        "ambiguous_compound_identity",
+        "mutation_or_construct_mismatch",
+        "access_blocked",
+        "database_only_lead"
+      ]
+    },
+    "Reason_Label_ZH": {"type": "string"},
+    "Search_Scope": {"type": "string", "minLength": 1},
+    "Sources_Checked": {"type": "string", "minLength": 1},
+    "Source_Locator": {"type": "string"},
+    "Evidence_Path": {"type": "string"},
+    "Evidence_SHA256": {"type": "string"},
+    "Evidence_Text": {"type": "string"},
+    "Blocker_ID": {"type": "string"},
+    "Query_ID": {"type": "string"},
+    "Status": {
+      "enum": [
+        "accepted_no_affinity_context",
+        "accepted_no_quantitative_context",
+        "accepted_non_numeric_context",
+        "accepted_phenotype_context",
+        "accepted_context_only",
+        "accepted_model_context",
+        "rejected_non_inhibitor",
+        "blocked_identity",
+        "blocked_scope",
+        "blocked_source",
+        "needs_primary_source"
+      ]
+    },
+    "Checked_At": {"type": "string"},
+    "Reviewer": {"type": "string"},
+    "Notes": {"type": "string"}
+  },
+  "additionalProperties": false
+}
+

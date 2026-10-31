@@ -1,0 +1,4 @@
+interface:
+  display_name: "PDB evidence harvester"
+  short_description: "Resolve PDB papers, OA full text, supplements and patents"
+  default_prompt: "Use $pdb-evidence-harvester to build a complete evidence pack for these PDB IDs from original papers, OA full text, supplements, patents and proprietary exports."
