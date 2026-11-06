@@ -172,3 +172,19 @@ Always publish numerators and denominators. Separate:
 Do not describe a candidate-seeded verification exercise as a fully blind
 discovery benchmark.
 
+## Operational failure modes
+
+- Do not expand thousands of PDB IDs into repeated command-line arguments.
+  Windows can fail with `WinError 206` before the acceptance script starts.
+  Store the normalized IDs in a file and pass the file path.
+- Do not print or return the full strict-validation payload from acceptance.
+  Preserve it on disk and return counts, statuses and a bounded warning excerpt.
+- Strict schema validation is not acceptance. The joint gate must explicitly
+  require at least one `Evidence_Status=accepted` row.
+- A visual-receipt check can be vacuously satisfied when there are zero accepted
+  rows. Keep it, but combine it with the explicit accepted-row gate.
+- Long-running evidence and extraction calls need external progress, timeout and
+  cancellation. A client timeout is not permission to rerun the same batch.
+- Verify that the installed Skill script hashes match the source repository
+  before claiming that a source fix is active in the MCP runtime.
+

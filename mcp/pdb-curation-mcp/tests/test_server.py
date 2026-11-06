@@ -747,6 +747,21 @@ class MissingReasonTests(unittest.TestCase):
 
 
 class LedgerToolTests(unittest.TestCase):
+    def test_large_pdb_list_uses_file_not_inline_arguments(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdbs = [f"{index:04d}" for index in range(2863)]
+            path = server.write_pdb_list(
+                root,
+                pdbs,
+                "acceptance_pdb_ids.txt",
+            )
+            self.assertEqual(path.name, "acceptance_pdb_ids.txt")
+            self.assertEqual(
+                len(path.read_text(encoding="utf-8").splitlines()),
+                2863,
+            )
+
     def test_infer_pdb_ids_from_curated_csv(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "curated.csv"

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -26,6 +27,22 @@ def read_csv(path: Path | None) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def read_pdb_ids_file(path: Path | None) -> list[str]:
+    if path is None:
+        return []
+    if not path.exists():
+        raise SystemExit(f"PDB ID file not found: {path}")
+    values = []
+    for token in re.split(r"[\s,;]+", path.read_text(encoding="utf-8-sig")):
+        value = token.strip().upper()
+        if not value:
+            continue
+        if not re.fullmatch(r"[0-9A-Z]{4}", value):
+            raise SystemExit(f"Invalid PDB ID in {path}: {token!r}")
+        values.append(value)
+    return values
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--curated", required=True, type=Path)
@@ -37,6 +54,7 @@ def main() -> None:
     parser.add_argument("--audit-sheet")
     parser.add_argument("--correction-log", type=Path)
     parser.add_argument("--pdb-id", action="append", default=[])
+    parser.add_argument("--pdb-id-file", type=Path)
     parser.add_argument("--visual-receipts", type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     args = parser.parse_args()
@@ -97,6 +115,8 @@ def main() -> None:
         ]
     for pdb_id in args.pdb_id:
         compare_command.extend(["--pdb-id", pdb_id])
+    if args.pdb_id_file:
+        compare_command.extend(["--pdb-id-file", str(args.pdb_id_file)])
     if args.correction_log:
         compare_command.extend(["--correction-log", str(args.correction_log)])
     comparison_run = run(compare_command)
@@ -124,6 +144,11 @@ def main() -> None:
     ]
     visual_receipts = read_csv(args.visual_receipts)
     curated_rows = read_csv(args.curated)
+    accepted_rows = [
+        row
+        for row in curated_rows
+        if clean(row.get("Evidence_Status")).lower() == "accepted"
+    ]
     visual_required_pdbs = {
         clean(row.get("PDB_ID")).upper()
         for row in curated_rows
@@ -143,6 +168,7 @@ def main() -> None:
     ]
     checks = {
         "strict_validation": validation.get("status") == "PASS",
+        "accepted_rows_present": bool(accepted_rows),
         "human_comparison": comparison_metrics.get("status") == "PASS",
         "blocker_closure": not open_required,
         "visual_receipts": (
@@ -155,7 +181,16 @@ def main() -> None:
     result = {
         "status": "PASS" if all(checks.values()) else "FAIL",
         "checks": checks,
-        "validation": validation,
+        "accepted_rows": len(accepted_rows),
+        "validation_file": str(validation_path),
+        "validation_summary": {
+            "status": validation.get("status"),
+            "rows": validation.get("rows"),
+            "error_count": len(validation.get("errors") or []),
+            "warning_count": len(validation.get("warnings") or []),
+            "missing_strict_columns": validation.get("missing_strict_columns") or [],
+            "warning_examples": (validation.get("warnings") or [])[:20],
+        },
         "human_comparison": comparison_metrics,
         "open_required_blockers": open_required,
         "incomplete_visual_receipts": visual_incomplete,
@@ -169,7 +204,23 @@ def main() -> None:
         json.dumps(result, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            {
+                "status": result["status"],
+                "checks": checks,
+                "accepted_rows": len(accepted_rows),
+                "open_required_blockers": len(open_required),
+                "incomplete_visual_receipts": len(visual_incomplete),
+                "missing_visual_receipt_pdbs": len(missing_visual_pdbs),
+                "final_acceptance_file": str(
+                    args.output_dir / "final_acceptance.json"
+                ),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
     raise SystemExit(0 if result["status"] == "PASS" else 1)
 
 

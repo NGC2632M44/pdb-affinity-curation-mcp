@@ -40,6 +40,22 @@ def read_csv(path: Path) -> list[dict[str, str]]:
         ]
 
 
+def read_pdb_ids_file(path: Path | None) -> list[str]:
+    if path is None:
+        return []
+    if not path.exists():
+        raise SystemExit(f"PDB ID file not found: {path}")
+    values = []
+    for token in re.split(r"[\s,;]+", path.read_text(encoding="utf-8-sig")):
+        value = token.strip().upper()
+        if not value:
+            continue
+        if not re.fullmatch(r"[0-9A-Z]{4}", value):
+            raise SystemExit(f"Invalid PDB ID in {path}: {token!r}")
+        values.append(value)
+    return values
+
+
 def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fields = list(dict.fromkeys(key for row in rows for key in row))
@@ -685,10 +701,12 @@ def main() -> None:
     parser.add_argument("--human-sheet", default="a_")
     parser.add_argument("--audit-sheet")
     parser.add_argument("--pdb-id", action="append", default=[])
+    parser.add_argument("--pdb-id-file", type=Path)
     parser.add_argument("--correction-log", type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     args = parser.parse_args()
-    targets = {clean(value).upper() for value in args.pdb_id if clean(value)}
+    target_values = [*args.pdb_id, *read_pdb_ids_file(args.pdb_id_file)]
+    targets = {clean(value).upper() for value in target_values if clean(value)}
     title, humans = human_rows(args.human_workbook, args.human_sheet, targets)
     audits = (
         audit_rows(args.human_workbook, args.audit_sheet, targets)

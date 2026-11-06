@@ -30,7 +30,7 @@ from typing import Any, Callable
 
 
 SERVER_NAME = "pdb-curation"
-SERVER_VERSION = "0.3.0"
+SERVER_VERSION = "0.3.1"
 PROTOCOL_VERSION = "2024-11-05"
 SUPPORTED_PROTOCOL_VERSIONS = {PROTOCOL_VERSION}
 ROOT = Path(__file__).resolve().parent
@@ -195,7 +195,11 @@ def ensure_dir(path: str | Path) -> Path:
     return output
 
 
-def write_pdb_list(output_dir: Path, pdb_ids: list[str]) -> Path:
+def write_pdb_list(
+    output_dir: Path,
+    pdb_ids: list[str],
+    filename: str = "pdbs.txt",
+) -> Path:
     normalized = []
     for value in pdb_ids:
         pdb = str(value).strip().upper()
@@ -204,7 +208,7 @@ def write_pdb_list(output_dir: Path, pdb_ids: list[str]) -> Path:
         normalized.append(pdb)
     if not normalized:
         raise ToolFailure("pdb_ids is empty")
-    path = output_dir / "pdbs.txt"
+    path = output_dir / filename
     path.write_text(
         "\n".join(dict.fromkeys(normalized)) + "\n",
         encoding="utf-8",
@@ -693,8 +697,19 @@ def compare_to_human(args: dict[str, Any]) -> dict[str, Any]:
                 else str(args[key])
             )
             command_args.extend([flag, value])
-    for pdb_id in pdb_ids:
-        command_args.extend(["--pdb-id", str(pdb_id).upper()])
+    if pdb_ids:
+        command_args.extend(
+            [
+                "--pdb-id-file",
+                str(
+                    write_pdb_list(
+                        output_dir,
+                        pdb_ids,
+                        "comparison_pdb_ids.txt",
+                    )
+                ),
+            ]
+        )
     command_args.extend(["--output-dir", str(output_dir)])
     result = run_python_script(
         "compare_to_human",
@@ -809,8 +824,19 @@ def run_acceptance(args: dict[str, Any]) -> dict[str, Any]:
                 else str(args[key])
             )
             command_args.extend([flag, value])
-    for pdb_id in pdb_ids:
-        command_args.extend(["--pdb-id", str(pdb_id).upper()])
+    if pdb_ids:
+        command_args.extend(
+            [
+                "--pdb-id-file",
+                str(
+                    write_pdb_list(
+                        output_dir,
+                        pdb_ids,
+                        "acceptance_pdb_ids.txt",
+                    )
+                ),
+            ]
+        )
     command_args.extend(["--output-dir", str(output_dir)])
     result = run_python_script(
         "run_acceptance",

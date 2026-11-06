@@ -324,10 +324,21 @@ infers the target PDB set from the curated CSV. This prevents unrelated rows in
 a large workbook from distorting the denominator. Set `use_all_human_rows=true`
 only for an intentional whole-workbook comparison.
 
+In version `0.3.1`, inferred PDB sets are written to
+`comparison_pdb_ids.txt` or `acceptance_pdb_ids.txt` inside the run directory
+and passed through `--pdb-id-file`. This avoids Windows command-line limits for
+large PDB collections.
+
 The MCP `run_acceptance` wrapper adds `missing_traceability` and
 `missing_coverage` checks to the underlying acceptance script. A blank value
 without a matching disposition keeps the final status at `FAIL`, even when the
 normalized CSV passes schema validation.
+
+The joint acceptance file now also requires `accepted_rows_present=true`.
+Strict schema validation, zero schema errors, or an empty visual-receipt set do
+not make a run successful when no row has passed the acceptance gates.
+Validation details remain in `validation.json`; stdout and the MCP response
+contain a bounded summary and warning excerpt.
 
 ## Non-goals
 
