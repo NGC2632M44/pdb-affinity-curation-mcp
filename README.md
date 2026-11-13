@@ -38,6 +38,7 @@ mcp/pdb-curation-mcp/skill/pdb-affinity-mcp/
 - PDF、表格、图和补充材料中的精确 page/table/figure locator；
 - 化合物、HET、InChIKey、CAS、构体和突变上下文核查；
 - Reaxys、SciFinder、ChEMBL、BindingDB 多源交叉核查账本；
+- IntAct、CORUM、BioGRID、STRING 的正交互作/复合物上下文查询与证据角色约束；
 - 结构化缺失原因、检索范围、证据收据、`Query_ID` 和 `Blocker_ID`；
 - 表到缺失账本的 `PDB + ligand + context + field` 覆盖审计；
 - 严格 schema、人工审核比较、blocker closure、visual receipt 和最终验收；

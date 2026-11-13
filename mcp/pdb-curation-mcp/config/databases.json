@@ -27,6 +27,114 @@
       ]
     },
     {
+      "name": "IntAct",
+      "kind": "public_api",
+      "url": "https://www.ebi.ac.uk/intact/ws/",
+      "docs": "https://www.ebi.ac.uk/intact/documentation",
+      "access": "available_without_login",
+      "evidence_role": "experimental_interaction_context",
+      "quality_profile": "curated_molecular_interactions_with_MI_evidence_codes",
+      "use_for": [
+        "experimental binary interaction context",
+        "MI evidence-code lookup",
+        "host-virus interaction clues"
+      ],
+      "prohibited_use": [
+        "affinity or potency",
+        "stoichiometry without direct evidence",
+        "causal direction without direct evidence"
+      ],
+      "preferred_route": "official interaction REST endpoint by exact UniProt or other stable identifier",
+      "notes": [
+        "An interaction edge is not a binding affinity.",
+        "Preserve the evidence code, interaction identifier and source locator."
+      ]
+    },
+    {
+      "name": "CORUM",
+      "kind": "public_api",
+      "url": "https://mips.helmholtz-muenchen.de/corum/",
+      "api": {
+        "base": "https://mips.helmholtz-muenchen.de/fastapi-corum",
+        "openapi": "https://mips.helmholtz-muenchen.de/fastapi-corum/openapi.json",
+        "status": "available_without_login"
+      },
+      "access": "available_without_login",
+      "evidence_role": "complex_context",
+      "quality_profile": "manually_curated_mammalian_complexes",
+      "use_for": [
+        "manually curated mammalian complex membership",
+        "host complex context",
+        "orthogonal complex-level review"
+      ],
+      "prohibited_use": [
+        "viral affinity",
+        "binary interaction direction",
+        "inference for non-mammalian complexes"
+      ],
+      "notes": [
+        "CORUM does not establish a viral endonuclease-inhibitor affinity.",
+        "A complex hit must remain separate from a target-affinity record."
+      ]
+    },
+    {
+      "name": "BioGRID",
+      "kind": "public_api",
+      "url": "https://thebiogrid.org/",
+      "docs": "https://wiki.thebiogrid.org/doku.php/biogridrest",
+      "downloads": "https://downloads.thebiogrid.org/BioGRID/Release-Archive/",
+      "access": "requires_free_api_key_or_bulk_download",
+      "evidence_role": "curated_interaction_context",
+      "quality_profile": "manually_curated_physical_and_genetic_interactions",
+      "use_for": [
+        "curated physical or genetic interaction context",
+        "orthogonal interaction lookup",
+        "host-virus network clues"
+      ],
+      "prohibited_use": [
+        "affinity or potency transfer",
+        "construct identity inference",
+        "treating genetic interaction as physical binding"
+      ],
+      "api": {
+        "base": "https://webservice.thebiogrid.org/interactions/",
+        "credential_env": "BIOGRID_ACCESS_KEY",
+        "status": "requires_registered_32_character_access_key"
+      },
+      "notes": [
+        "Never store the access key in a manifest, ledger or prompt.",
+        "Bulk downloads are an authorized alternative when the API key is unavailable."
+      ]
+    },
+    {
+      "name": "STRING",
+      "kind": "public_api",
+      "url": "https://string-db.org/api/",
+      "docs": "https://string-db.org/help/api/",
+      "access": "available_without_login",
+      "evidence_role": "aggregated_association_context",
+      "quality_profile": "aggregated_known_and_predicted_associations",
+      "use_for": [
+        "network neighbourhood",
+        "identifier mapping",
+        "functional enrichment"
+      ],
+      "prohibited_use": [
+        "affinity or potency",
+        "binary experimental evidence",
+        "causal direction"
+      ],
+      "api": {
+        "version": "https://string-db.org/api/tsv/version",
+        "mapping": "https://string-db.org/api/json/get_string_ids",
+        "partners": "https://string-db.org/api/json/interaction_partners"
+      },
+      "notes": [
+        "STRING scores are channel/association confidence, not binding constants.",
+        "Taxid is required for organism-scoped queries."
+      ]
+    },
+    {
       "name": "SciFinder-n",
       "kind": "licensed_web",
       "url": "https://scifinder-n.cas.org/",

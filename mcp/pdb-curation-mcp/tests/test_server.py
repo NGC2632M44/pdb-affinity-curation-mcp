@@ -9,11 +9,13 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 
 SERVER_PATH = Path(__file__).resolve().parents[1] / "server.py"
+REPO_ROOT = SERVER_PATH.parents[2]
 SPEC = importlib.util.spec_from_file_location("pdb_curation_server", SERVER_PATH)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError(f"Cannot import {SERVER_PATH}")
@@ -61,6 +63,7 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(len(names), len(set(names)))
         self.assertIn("record_missing_disposition", names)
         self.assertIn("audit_missing_traceability", names)
+        self.assertIn("query_orthogonal_sources", names)
         tools_by_name = {tool["name"]: tool for tool in tools}
         self.assertIn("oneOf", tools_by_name["fetch_pdb_evidence"]["inputSchema"])
         self.assertIn("oneOf", tools_by_name["resolve_identity"]["inputSchema"])
@@ -81,10 +84,51 @@ class ProtocolTests(unittest.TestCase):
             {"jsonrpc": "2.0", "id": 3, "method": "resources/list", "params": {}}
         )
         resources = response["result"]["resources"]
-        self.assertGreaterEqual(len(resources), 6)
+        self.assertGreaterEqual(len(resources), 7)
+        self.assertIn("pdb-curation://orthogonal-sources", {item["uri"] for item in resources})
         for resource in resources:
             read = server.resources_read({"uri": resource["uri"]})
             self.assertTrue(read["contents"][0]["text"])
+
+    def test_orthogonal_source_inventory_has_roles_and_prohibited_uses(self) -> None:
+        config = json.loads(
+            (SERVER_PATH.parent / "config" / "databases.json").read_text(encoding="utf-8")
+        )
+        by_name = {item["name"]: item for item in config["databases"]}
+        expected = {
+            "IntAct": "experimental_interaction_context",
+            "CORUM": "complex_context",
+            "BioGRID": "curated_interaction_context",
+            "STRING": "aggregated_association_context",
+        }
+        for name, role in expected.items():
+            self.assertIn(name, by_name)
+            self.assertEqual(by_name[name]["evidence_role"], role)
+            self.assertTrue(by_name[name]["prohibited_use"])
+
+    def test_biogrid_without_key_is_a_recorded_blocker(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "orthogonal.json"
+            with mock.patch.dict(
+                os.environ,
+                {"PDB_SKILL_ROOT": str(REPO_ROOT / "skills")},
+                clear=False,
+            ):
+                os.environ.pop("BIOGRID_ACCESS_KEY", None)
+                result = server.query_orthogonal_sources(
+                    {
+                        "identifiers": ["P03433"],
+                        "sources": "biogrid",
+                        "output": str(output),
+                    }
+                )
+            self.assertTrue(result["ok"], result)
+            manifest = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(manifest["results"][0]["status"], "blocked_missing_api_key")
+            self.assertEqual(
+                manifest["results"][0]["evidence_role"],
+                "curated_interaction_context",
+            )
 
     def test_subprocess_stdio(self) -> None:
         requests = [

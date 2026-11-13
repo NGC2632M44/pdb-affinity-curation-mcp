@@ -74,16 +74,33 @@ citation, its title code occurs in the paper/SI, and the component name or
 InChIKey is independently present. Prefer mutation/construct agreement. Keep
 the original title alias in the conflict log.
 
-5. Search patents by HET chemical name, synonym, InChIKey and exact publication
+5. Query orthogonal interaction/complex context through official routes when
+   the biological question needs host-virus or complex context:
+
+```bash
+python scripts/query_orthogonal_sources.py \
+  --identifier P03433 \
+  --taxid 9031 \
+  --sources intact,corum,string,biogrid \
+  --output orthogonal_sources.json
+```
+
+   IntAct and BioGRID provide interaction context, CORUM provides curated
+   mammalian complex context and STRING provides aggregated association
+   context. None of them creates affinity, potency, construct identity or a
+   causal direction. BioGRID requires `BIOGRID_ACCESS_KEY` or an official bulk
+   export.
+
+6. Search patents by HET chemical name, synonym, InChIKey and exact publication
    number from Reaxys/SciFinder. Use `patent_candidates.csv` only as leads.
-6. If the user has an authenticated Reaxys or SciFinder session, use the
+7. If the user has an authenticated Reaxys or SciFinder session, use the
    browser/computer-use workflow to run and export the query. Record:
 
 ```text
 database, query, date, fields requested, export hash
 ```
 
-7. If full patent PDFs are available and `PATMAP_API_KEY` is set, run:
+8. If full patent PDFs are available and `PATMAP_API_KEY` is set, run:
 
 ```bash
 python scripts/patmap_extract.py patent_1.pdf patent_2.pdf \
@@ -93,7 +110,7 @@ python scripts/patmap_extract.py patent_1.pdf patent_2.pdf \
 
 PatMap is a licensed extractor, not a patent search engine.
 
-8. Convert raw blockers into a resolution ledger:
+9. Convert raw blockers into a resolution ledger:
 
 ```bash
 python scripts/resolve_blockers.py \
@@ -105,7 +122,7 @@ python scripts/resolve_blockers.py \
   --output blocker_resolution.csv
 ```
 
-9. Hand the evidence pack and `review_checklist.csv` to
+10. Hand the evidence pack and `review_checklist.csv` to
    `$pdb-affinity-analysis`. Do not hand unread search snippets directly to an
    output table.
 
@@ -124,6 +141,8 @@ Read [references/proprietary-databases.md](references/proprietary-databases.md)
 when Reaxys or SciFinder is part of the search.
 Read [references/access-fallbacks.md](references/access-fallbacks.md) when a
 public API or OA URL is blocked, before declaring the source unavailable.
+Read [references/orthogonal-databases.md](references/orthogonal-databases.md)
+before using IntAct, CORUM, BioGRID or STRING.
 
 ## Deliverables
 
@@ -143,6 +162,7 @@ evidence_pack/
   blocker_resolution.csv
   review_checklist.csv
   local_source_matches.csv
+  orthogonal_sources.json
   identity/
   fulltext/
   web_pages/

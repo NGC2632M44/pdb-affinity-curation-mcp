@@ -145,6 +145,8 @@ Example client entry:
   patent candidates.
 - `resolve_local_sources`: match citations to Zotero, Downloads and project
   files.
+- `query_orthogonal_sources`: official IntAct, CORUM, BioGRID and STRING
+  interaction/complex context with evidence-role boundaries.
 - `resolve_identity`: stale title codes, missing citation and exact-component
   peers.
 - `patmap_extract`: authorized patent PDFs when `PATMAP_API_KEY` exists.

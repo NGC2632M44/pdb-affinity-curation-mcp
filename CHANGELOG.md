@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Official orthogonal-source routes for IntAct, CORUM, BioGRID and STRING.
+- `query_orthogonal_sources` with bounded payload summaries, query/result
+  provenance, explicit evidence roles and prohibited-use rules.
+- `pdb-curation://orthogonal-sources` resource documentation.
+
+### Safety
+
+- BioGRID without `BIOGRID_ACCESS_KEY` is recorded as a blocker rather than an
+  inferred result.
+- Interaction, complex and association context can never create affinity,
+  potency, construct identity or causal direction.
+
 ## [0.3.1] - 2026-11-06
 
 ### Fixed

@@ -30,7 +30,7 @@ from typing import Any, Callable
 
 
 SERVER_NAME = "pdb-curation"
-SERVER_VERSION = "0.3.1"
+SERVER_VERSION = "0.4.0"
 PROTOCOL_VERSION = "2024-11-05"
 SUPPORTED_PROTOCOL_VERSIONS = {PROTOCOL_VERSION}
 ROOT = Path(__file__).resolve().parent
@@ -53,6 +53,10 @@ SKILL_SCRIPTS = {
     "resolve_local_sources": (
         "pdb-evidence-harvester",
         "scripts/resolve_local_sources.py",
+    ),
+    "query_orthogonal_sources": (
+        "pdb-evidence-harvester",
+        "scripts/query_orthogonal_sources.py",
     ),
     "identity_resolver": (
         "pdb-evidence-harvester",
@@ -247,6 +251,8 @@ def run_python_script(
     }
     if tool_name == "patmap_extract" and os.environ.get("PATMAP_API_KEY"):
         process_env["PATMAP_API_KEY"] = os.environ["PATMAP_API_KEY"]
+    if tool_name == "query_orthogonal_sources" and os.environ.get("BIOGRID_ACCESS_KEY"):
+        process_env["BIOGRID_ACCESS_KEY"] = os.environ["BIOGRID_ACCESS_KEY"]
     process_env["PYTHONUTF8"] = "1"
     process_env["PYTHONIOENCODING"] = "utf-8"
     started = utc_now()
@@ -408,6 +414,7 @@ def environment_check(_: dict[str, Any]) -> dict[str, Any]:
         "external_tools": tools,
         "optional_environment": {
             "PATMAP_API_KEY": bool(os.environ.get("PATMAP_API_KEY")),
+            "BIOGRID_ACCESS_KEY": bool(os.environ.get("BIOGRID_ACCESS_KEY")),
         },
         "databases": database_config(),
     }
@@ -476,6 +483,37 @@ def resolve_local_sources(args: dict[str, Any]) -> dict[str, Any]:
         "resolve_local_sources",
         command_args,
         timeout_seconds=int(args.get("process_timeout_seconds", 1800)),
+    )
+
+
+def query_orthogonal_sources(args: dict[str, Any]) -> dict[str, Any]:
+    identifiers = [str(item).strip() for item in args.get("identifiers") or [] if str(item).strip()]
+    identifier_file = args.get("identifier_file")
+    if not identifiers and not identifier_file:
+        raise ToolFailure("identifiers or identifier_file is required")
+    output = Path(args["output"]).expanduser().resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    command_args = []
+    for identifier in identifiers:
+        command_args.extend(["--identifier", identifier])
+    if identifier_file:
+        command_args.extend(["--identifier-file", str(Path(identifier_file).expanduser().resolve())])
+    if args.get("taxid"):
+        command_args.extend(["--taxid", str(args["taxid"])])
+    if args.get("sources"):
+        command_args.extend(["--sources", str(args["sources"])])
+    for key, flag in (("limit", "--limit"), ("timeout_seconds", "--timeout")):
+        if args.get(key) is not None:
+            command_args.extend([flag, str(args[key])])
+    if args.get("allow_insecure_tls"):
+        command_args.append("--allow-insecure-tls")
+    if args.get("include_raw_payloads"):
+        command_args.append("--include-raw-payloads")
+    command_args.extend(["--output", str(output)])
+    return run_python_script(
+        "query_orthogonal_sources",
+        command_args,
+        timeout_seconds=int(args.get("process_timeout_seconds", 600)),
     )
 
 
@@ -1979,6 +2017,25 @@ TOOLS = [
         open_world=True,
     ),
     _tool(
+        "query_orthogonal_sources",
+        "Query official IntAct, CORUM, BioGRID and STRING routes for interaction or complex context without creating affinity evidence.",
+        {
+            "identifiers": _property("array", "Exact UniProt or other stable identifiers.", items={"type": "string"}),
+            "identifier_file": _property("string", "Optional one-identifier-per-line file."),
+            "taxid": _property("string", "NCBI taxid required for STRING and optional for BioGRID."),
+            "sources": _property("string", "Comma-separated sources: intact, corum, string, biogrid.", default="intact,corum,string,biogrid"),
+            "limit": _property("integer", "Maximum result count per source and identifier.", default=20),
+            "timeout_seconds": _property("integer", "Network timeout per request.", default=30),
+            "allow_insecure_tls": _property("boolean", "Explicitly allow an insecure TLS fallback for an official endpoint with an incomplete chain.", default=False),
+            "include_raw_payloads": _property("boolean", "Include full upstream payloads instead of bounded summaries.", default=False),
+            "output": _property("string", "JSON query-manifest output path."),
+            "process_timeout_seconds": _property("integer", "Overall subprocess timeout.", default=600),
+        },
+        ["output"],
+        open_world=True,
+        any_of=[{"required": ["identifiers"]}, {"required": ["identifier_file"]}],
+    ),
+    _tool(
         "extract_document_text",
         "Create page-aware text, numeric review queues, OCR consensus and rendered-page queues from PDF, DOCX, TIFF, ZIP, XLSX and CSV sources.",
         {
@@ -2321,6 +2378,7 @@ HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "environment_check": environment_check,
     "fetch_pdb_evidence": fetch_pdb_evidence,
     "resolve_local_sources": resolve_local_sources,
+    "query_orthogonal_sources": query_orthogonal_sources,
     "extract_document_text": extract_document_text,
     "build_visual_review": build_visual_review,
     "resolve_identity": resolve_identity,
@@ -2348,6 +2406,13 @@ RESOURCE_FILES = {
     "pdb-curation://project-lessons": DOCS_DIR / "PROJECT_LESSONS.md",
     "pdb-curation://source-policy": DOCS_DIR / "CROSSCHECK_POLICY.md",
     "pdb-curation://databases": DOCS_DIR / "DATABASES.md",
+    "pdb-curation://orthogonal-sources": (
+        ROOT.parents[1]
+        / "skills"
+        / "pdb-evidence-harvester"
+        / "references"
+        / "orthogonal-databases.md"
+    ),
     "pdb-curation://missing-reasons": SCHEMAS_DIR / "missing_reasons.json",
     "pdb-curation://skill": ROOT / "skill" / "pdb-affinity-mcp" / "SKILL.md",
 }
