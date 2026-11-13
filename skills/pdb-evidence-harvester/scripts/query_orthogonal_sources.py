@@ -107,7 +107,44 @@ def query_string(identifier: str, taxid: str | None, limit: int, timeout: int) -
     result = fetch_json(url, timeout)
     payload = result.get("payload")
     count = len(payload) if isinstance(payload, list) else None
-    return {"source": "STRING", "query": identifier, "taxid": taxid, "url": url, "result_count": count, **result}
+    partner_queries = []
+    if result.get("status") == "ok" and isinstance(payload, list):
+        for mapping in payload:
+            string_id = str(mapping.get("stringId") or "").strip()
+            if not string_id:
+                continue
+            partner_params = urllib.parse.urlencode({
+                "identifiers": string_id,
+                "species": taxid,
+                "limit": limit,
+                "caller_identity": "pdb-affinity-curation-mcp",
+            })
+            partner_url = f"https://string-db.org/api/json/interaction_partners?{partner_params}"
+            partner_result = fetch_json(partner_url, timeout)
+            partner_payload = partner_result.get("payload")
+            partner_queries.append({
+                "string_id": string_id,
+                "url": partner_url,
+                "result_count": len(partner_payload) if isinstance(partner_payload, list) else None,
+                "partners": [
+                    {
+                        "preferred_name_a": item.get("preferredName_A"),
+                        "preferred_name_b": item.get("preferredName_B"),
+                        "score": item.get("score"),
+                    }
+                    for item in (partner_payload or [])[:limit]
+                ] if isinstance(partner_payload, list) else [],
+                **{key: value for key, value in partner_result.items() if key != "payload"},
+            })
+    return {
+        "source": "STRING",
+        "query": identifier,
+        "taxid": taxid,
+        "url": url,
+        "result_count": count,
+        "partner_queries": partner_queries,
+        **result,
+    }
 
 
 def query_corum(identifier: str, limit: int, timeout: int, allow_insecure_tls: bool) -> dict[str, Any]:
