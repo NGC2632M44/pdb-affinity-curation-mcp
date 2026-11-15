@@ -12,6 +12,11 @@ store credentials or bypass paywalls, CAPTCHAs or entitlement controls.
 | ChEMBL | `https://www.ebi.ac.uk/chembl/api/data` | molecule, target and assay crosscheck |
 | BindingDB | `https://bindingdb.org/` | activity crosscheck |
 | PubChem | `https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest` | chemical identity and synonyms |
+| Crossref | `https://api.crossref.org/works/` | DOI bibliographic metadata |
+| DataCite | `https://api.datacite.org/dois/` | dataset DOI metadata |
+| Europe PMC fullTextXML | `https://www.ebi.ac.uk/europepmc/webservices/rest` | DOI/PMID/PMCID and OA full text |
+| Semantic Scholar | `https://api.semanticscholar.org/graph/v1/` | bibliographic and OA-route discovery |
+| Unpaywall | `https://api.unpaywall.org/v2/` | OA status and license route |
 | IntAct | `https://www.ebi.ac.uk/intact/ws/` | experimental interaction context and MI evidence codes |
 | CORUM | `https://mips.helmholtz-muenchen.de/fastapi-corum` | manually curated mammalian complex context |
 | BioGRID | `https://webservice.thebiogrid.org/interactions/` | curated physical/genetic interaction context (API key or bulk export) |

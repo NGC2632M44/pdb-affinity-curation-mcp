@@ -1,13 +1,13 @@
 interface:
-  display_name: "PDB Affinity MCP"
-  short_description: "Traceable PDB affinity and missing-data curation"
-  default_prompt: "Use $pdb-affinity-mcp to curate PDB-linked affinity data with full-text evidence and an explicit reason for every missing field."
+  display_name: "Biomedical Database Curation MCP"
+  short_description: "Traceable PDB affinity and general database evidence curation"
+  default_prompt: "Use $pdb-affinity-mcp to curate PDB-linked affinity data or build a reusable biomedical metadata registry with coverage gates, provenance and explicit missing-data reasons."
 
 dependencies:
   tools:
     - type: "mcp"
       value: "pdb-curation"
-      description: "Local stdio PDB curation MCP"
+      description: "Local stdio PDB and biomedical database evidence curation MCP"
       transport: "stdio"
 
 policy:

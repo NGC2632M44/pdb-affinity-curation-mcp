@@ -1,6 +1,6 @@
 ---
 name: pdb-affinity-mcp
-description: Curate PDB-linked affinity, potency, target and sequence data through the PDB Curation MCP. Use when a task requires full-text-first evidence, exact compound and construct matching, multi-source crosschecks, or auditable explanations for missing data.
+description: Curate PDB-linked affinity data and build general biomedical database evidence pipelines through the PDB and Biomedical Database Curation MCP. Use for full-text-first evidence, metadata harvesting, assay-context enrichment, coverage gates, exact identity matching, or auditable missing data.
 ---
 
 # PDB Affinity MCP
@@ -88,6 +88,27 @@ verification. A database value remains a lead until primary evidence is read.
 
 Call `crosscheck_sources` after curated rows exist. Preserve conflicts; do not
 average values.
+
+## General database construction
+
+Use the general database tools when the target is a reusable dataset rather than
+a single PDB affinity table:
+
+1. Call `build_assay_registry` when one row is an assay; use
+   `build_metadata_registry` for other record grains.
+2. Call `fetch_chembl_assay_metadata` for structured assay/document/target
+   metadata, and `resolve_public_metadata` for DOI/PMID/PMCID metadata.
+3. Call `enrich_assay_text` to derive readout, expression, tag and substrate
+   fields from descriptions.
+4. Call `audit_metadata_coverage` with the required context fields.
+5. Call `build_source_acquisition_queue` to turn every failed gate into an
+   explicit next-source task; record a blocker when no authorized route exists.
+6. Call `build_context_model_dataset` to create explicit missingness flags and
+   an assay-level split manifest. Never impute context to pass a gate.
+7. Freeze the registry, queue, coverage audit and source hashes before modeling.
+
+Do not pass a metadata column into a model when its coverage gate failed. Do not
+treat a review or patent aggregation as a single assay.
 
 ## Output and acceptance
 

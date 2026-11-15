@@ -211,6 +211,85 @@
       ]
     },
     {
+      "name": "Crossref",
+      "kind": "public_api",
+      "url": "https://api.crossref.org/works/",
+      "access": "available_without_login",
+      "evidence_role": "bibliographic_metadata",
+      "use_for": [
+        "DOI title and publication metadata",
+        "publisher and resource type",
+        "citation discovery"
+      ],
+      "prohibited_use": [
+        "assay condition inference",
+        "affinity or potency evidence"
+      ]
+    },
+    {
+      "name": "DataCite",
+      "kind": "public_api",
+      "url": "https://api.datacite.org/dois/",
+      "access": "available_without_login",
+      "evidence_role": "dataset_metadata",
+      "use_for": [
+        "dataset DOI resolution",
+        "repository and version metadata"
+      ],
+      "prohibited_use": [
+        "assay protocol inference",
+        "affinity or potency evidence"
+      ]
+    },
+    {
+      "name": "Europe PMC fullTextXML",
+      "kind": "public_api",
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest",
+      "access": "available_for_indexed_or_open_content",
+      "evidence_role": "primary_or_secondary_text",
+      "use_for": [
+        "DOI/PMID/PMCID resolution",
+        "OA full-text extraction",
+        "page or section locators"
+      ],
+      "prohibited_use": [
+        "treating an abstract as a full assay protocol",
+        "bypassing publisher access controls"
+      ]
+    },
+    {
+      "name": "Semantic Scholar Graph API",
+      "kind": "public_api",
+      "url": "https://api.semanticscholar.org/graph/v1/",
+      "access": "available_with_rate_limits",
+      "evidence_role": "bibliographic_discovery",
+      "use_for": [
+        "paper metadata",
+        "abstract discovery",
+        "open-access location discovery"
+      ],
+      "prohibited_use": [
+        "affinity acceptance",
+        "construct identity inference"
+      ]
+    },
+    {
+      "name": "Unpaywall",
+      "kind": "public_api",
+      "url": "https://api.unpaywall.org/v2/",
+      "access": "available_with_contact_email",
+      "evidence_role": "open_access_route",
+      "use_for": [
+        "OA status",
+        "license discovery",
+        "authorized full-text route discovery"
+      ],
+      "prohibited_use": [
+        "bypassing paywalls or publisher terms",
+        "affinity acceptance"
+      ]
+    },
+    {
       "name": "Google Patents / Patentscope / Espacenet",
       "kind": "public_web",
       "urls": [

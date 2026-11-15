@@ -30,7 +30,11 @@ from typing import Any, Callable
 
 
 SERVER_NAME = "pdb-curation"
-SERVER_VERSION = "0.4.0"
+SERVER_VERSION = "0.6.0"
+SERVER_DESCRIPTION = (
+    "Traceable biomedical database evidence collection and curation for PDB, "
+    "assay, target, sequence, patent, publication and compound-linked records."
+)
 PROTOCOL_VERSION = "2024-11-05"
 SUPPORTED_PROTOCOL_VERSIONS = {PROTOCOL_VERSION}
 ROOT = Path(__file__).resolve().parent
@@ -43,6 +47,7 @@ SKILL_NAMES = (
     "pdb-affinity-analysis",
     "pdb-affinity-output",
     "pdb-affinity-curation",
+    "database-evidence-curation",
 )
 
 SKILL_SCRIPTS = {
@@ -97,6 +102,38 @@ SKILL_SCRIPTS = {
     "run_acceptance": (
         "pdb-affinity-curation",
         "scripts/run_acceptance.py",
+    ),
+    "build_metadata_registry": (
+        "database-evidence-curation",
+        "scripts/build_metadata_registry.py",
+    ),
+    "fetch_chembl_assay_metadata": (
+        "database-evidence-curation",
+        "scripts/fetch_chembl_assay_metadata.py",
+    ),
+    "resolve_public_metadata": (
+        "database-evidence-curation",
+        "scripts/resolve_public_metadata.py",
+    ),
+    "enrich_assay_text": (
+        "database-evidence-curation",
+        "scripts/enrich_assay_text.py",
+    ),
+    "audit_metadata_coverage": (
+        "database-evidence-curation",
+        "scripts/audit_metadata_coverage.py",
+    ),
+    "build_assay_registry": (
+        "database-evidence-curation",
+        "scripts/build_assay_registry.py",
+    ),
+    "build_source_acquisition_queue": (
+        "database-evidence-curation",
+        "scripts/build_source_acquisition_queue.py",
+    ),
+    "build_context_model_dataset": (
+        "database-evidence-curation",
+        "scripts/build_context_model_dataset.py",
     ),
 }
 
@@ -400,6 +437,7 @@ def environment_check(_: dict[str, Any]) -> dict[str, Any]:
         "server": {
             "name": SERVER_NAME,
             "version": SERVER_VERSION,
+            "description": SERVER_DESCRIPTION,
             "python": sys.version,
             "executable": sys.executable,
             "platform": platform.platform(),
@@ -418,6 +456,227 @@ def environment_check(_: dict[str, Any]) -> dict[str, Any]:
         },
         "databases": database_config(),
     }
+
+
+def build_metadata_registry(args: dict[str, Any]) -> dict[str, Any]:
+    output = Path(args["output"]).expanduser().resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    id_columns = args.get("id_columns") or []
+    if not id_columns:
+        raise ToolFailure("id_columns is required")
+    command_args = [
+        "--input",
+        str(Path(args["input"]).expanduser().resolve()),
+        "--output",
+        str(output),
+        "--id-columns",
+        ",".join(str(item) for item in id_columns),
+        "--source-column",
+        str(args.get("source_column", "source")),
+        "--title-column",
+        str(args.get("title_column", "title")),
+        "--required-fields",
+        ",".join(str(item) for item in args.get("required_fields") or []),
+    ]
+    if args.get("max_groups") is not None:
+        command_args.extend(["--max-groups", str(int(args["max_groups"]))])
+    return run_python_script(
+        "build_metadata_registry",
+        command_args,
+        timeout_seconds=int(args.get("process_timeout_seconds", 600)),
+    )
+
+
+def fetch_chembl_assay_metadata(args: dict[str, Any]) -> dict[str, Any]:
+    output = Path(args["output"]).expanduser().resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    cache_dir = Path(args.get("cache_dir", output.parent / "chembl_cache")).expanduser().resolve()
+    command_args = [
+        "--output",
+        str(output),
+        "--cache-dir",
+        str(cache_dir),
+        "--assay-column",
+        str(args.get("assay_column", "assay_id")),
+        "--workers",
+        str(int(args.get("workers", 4))),
+        "--timeout",
+        str(int(args.get("timeout_seconds", 30))),
+    ]
+    if args.get("input"):
+        command_args.extend(["--input", str(Path(args["input"]).expanduser().resolve())])
+    if args.get("assay_ids"):
+        command_args.extend(["--assay-ids", ",".join(str(item) for item in args["assay_ids"])])
+    if args.get("include_document_target"):
+        command_args.append("--include-document-target")
+    return run_python_script(
+        "fetch_chembl_assay_metadata",
+        command_args,
+        timeout_seconds=int(args.get("process_timeout_seconds", 3600)),
+    )
+
+
+def resolve_public_metadata(args: dict[str, Any]) -> dict[str, Any]:
+    output = Path(args["output"]).expanduser().resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    command_args = [
+        "--output",
+        str(output),
+        "--id-column",
+        str(args.get("id_column", "doi")),
+        "--kind",
+        str(args.get("kind", "auto")),
+        "--timeout",
+        str(int(args.get("timeout_seconds", 30))),
+    ]
+    if args.get("input"):
+        command_args.extend(["--input", str(Path(args["input"]).expanduser().resolve())])
+    if args.get("identifiers"):
+        command_args.extend(["--identifiers", ",".join(str(item) for item in args["identifiers"])])
+    return run_python_script(
+        "resolve_public_metadata",
+        command_args,
+        timeout_seconds=int(args.get("process_timeout_seconds", 1800)),
+    )
+
+
+def enrich_assay_text(args: dict[str, Any]) -> dict[str, Any]:
+    output = Path(args["output"]).expanduser().resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    command_args = [
+        "--input",
+        str(Path(args["input"]).expanduser().resolve()),
+        "--output",
+        str(output),
+        "--description-column",
+        str(args.get("description_column", "description")),
+        "--readout-column",
+        str(args.get("readout_column", "readout_class")),
+        "--expression-column",
+        str(args.get("expression_column", "expression_system")),
+        "--tag-column",
+        str(args.get("tag_column", "tag_class")),
+        "--substrate-column",
+        str(args.get("substrate_column", "substrate_text")),
+    ]
+    if args.get("summary"):
+        summary = Path(args["summary"]).expanduser().resolve()
+        summary.parent.mkdir(parents=True, exist_ok=True)
+        command_args.extend(["--summary", str(summary)])
+    return run_python_script(
+        "enrich_assay_text",
+        command_args,
+        timeout_seconds=int(args.get("process_timeout_seconds", 600)),
+    )
+
+
+def audit_metadata_coverage(args: dict[str, Any]) -> dict[str, Any]:
+    output = Path(args["output"]).expanduser().resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    required_fields = args.get("required_fields") or []
+    if not required_fields:
+        raise ToolFailure("required_fields is required")
+    command_args = [
+        "--input",
+        str(Path(args["input"]).expanduser().resolve()),
+        "--output",
+        str(output),
+        "--required-fields",
+        ",".join(str(item) for item in required_fields),
+        "--minimum-fraction",
+        str(float(args.get("minimum_fraction", 0.8))),
+        "--source-field",
+        str(args.get("source_field", "sources")),
+    ]
+    return run_python_script(
+        "audit_metadata_coverage",
+        command_args,
+        timeout_seconds=int(args.get("process_timeout_seconds", 600)),
+    )
+
+
+def build_assay_registry(args: dict[str, Any]) -> dict[str, Any]:
+    output = Path(args["output"]).expanduser().resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    command_args = [
+        "--input",
+        str(Path(args["input"]).expanduser().resolve()),
+        "--output",
+        str(output),
+        "--assay-column",
+        str(args.get("assay_column", "assay_id")),
+        "--compound-column",
+        str(args.get("compound_column", "canonical_smiles")),
+        "--source-column",
+        str(args.get("source_column", "source")),
+        "--required-fields",
+        ",".join(str(item) for item in args.get("required_fields") or []),
+        "--max-value-chars",
+        str(int(args.get("max_value_chars", 500))),
+    ]
+    return run_python_script(
+        "build_assay_registry",
+        command_args,
+        timeout_seconds=int(args.get("process_timeout_seconds", 600)),
+    )
+
+
+def build_source_acquisition_queue(args: dict[str, Any]) -> dict[str, Any]:
+    output = Path(args["output"]).expanduser().resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    command_args = [
+        "--input",
+        str(Path(args["input"]).expanduser().resolve()),
+        "--output",
+        str(output),
+    ]
+    if args.get("priority_fields"):
+        command_args.extend(
+            [
+                "--priority-fields",
+                ",".join(str(item) for item in args["priority_fields"]),
+            ]
+        )
+    if args.get("summary"):
+        summary = Path(args["summary"]).expanduser().resolve()
+        summary.parent.mkdir(parents=True, exist_ok=True)
+        command_args.extend(["--summary", str(summary)])
+    if args.get("include_ready"):
+        command_args.append("--include-ready")
+    return run_python_script(
+        "build_source_acquisition_queue",
+        command_args,
+        timeout_seconds=int(args.get("process_timeout_seconds", 600)),
+    )
+
+
+def build_context_model_dataset(args: dict[str, Any]) -> dict[str, Any]:
+    output = Path(args["output"]).expanduser().resolve()
+    manifest = Path(args["manifest"]).expanduser().resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    manifest.parent.mkdir(parents=True, exist_ok=True)
+    command_args = [
+        "--input",
+        str(Path(args["input"]).expanduser().resolve()),
+        "--output",
+        str(output),
+        "--manifest",
+        str(manifest),
+        "--assay-column",
+        str(args.get("assay_column", "assay_id")),
+    ]
+    if args.get("model_fields"):
+        command_args.extend(
+            [
+                "--model-fields",
+                ",".join(str(item) for item in args["model_fields"]),
+            ]
+        )
+    return run_python_script(
+        "build_context_model_dataset",
+        command_args,
+        timeout_seconds=int(args.get("process_timeout_seconds", 1200)),
+    )
 
 
 def fetch_pdb_evidence(args: dict[str, Any]) -> dict[str, Any]:
@@ -1980,6 +2239,123 @@ TOOLS = [
         read_only=True,
     ),
     _tool(
+        "build_metadata_registry",
+        "Group a CSV by record identifiers and produce a provenance-aware metadata registry with field and group coverage.",
+        {
+            "input": _property("string", "Input CSV path."),
+            "output": _property("string", "Output registry JSON path."),
+            "id_columns": _property("array", "Columns defining the record grain.", items={"type": "string"}),
+            "source_column": _property("string", "Source column.", default="source"),
+            "title_column": _property("string", "Title column.", default="title"),
+            "required_fields": _property("array", "Fields required for acceptance.", items={"type": "string"}),
+            "max_groups": _property("integer", "Maximum groups to retain; 0 keeps all.", default=0),
+            "process_timeout_seconds": _property("integer", "Process timeout.", default=600),
+        },
+        ["input", "output", "id_columns"],
+    ),
+    _tool(
+        "fetch_chembl_assay_metadata",
+        "Fetch ChEMBL assay metadata and optionally linked document and target records with an on-disk cache.",
+        {
+            "input": _property("string", "Optional CSV containing assay IDs."),
+            "assay_column": _property("string", "Assay ID column.", default="assay_id"),
+            "assay_ids": _property("array", "Explicit ChEMBL assay IDs.", items={"type": "string"}),
+            "output": _property("string", "Output JSON path."),
+            "cache_dir": _property("string", "Cache directory."),
+            "workers": _property("integer", "Concurrent fetch workers.", default=4),
+            "timeout_seconds": _property("integer", "Per-request timeout.", default=30),
+            "include_document_target": _property("boolean", "Fetch linked document and target metadata."),
+            "process_timeout_seconds": _property("integer", "Process timeout.", default=3600),
+        },
+        ["output"],
+        any_of=[{"required": ["input"]}, {"required": ["assay_ids"]}],
+    ),
+    _tool(
+        "resolve_public_metadata",
+        "Resolve DOI, PMID or PMCID identifiers through Crossref, DataCite and Europe PMC metadata APIs.",
+        {
+            "input": _property("string", "Optional CSV containing identifiers."),
+            "id_column": _property("string", "Identifier column.", default="doi"),
+            "identifiers": _property("array", "Explicit DOI, PMID or PMCID identifiers.", items={"type": "string"}),
+            "kind": _property("string", "auto, doi or europepmc.", default="auto", enum=["auto", "doi", "europepmc"]),
+            "output": _property("string", "Output JSON path."),
+            "timeout_seconds": _property("integer", "Per-request timeout.", default=30),
+            "process_timeout_seconds": _property("integer", "Process timeout.", default=1800),
+        },
+        ["output"],
+        any_of=[{"required": ["input"]}, {"required": ["identifiers"]}],
+    ),
+    _tool(
+        "enrich_assay_text",
+        "Extract deterministic readout, expression-system, tag and substrate context from assay descriptions.",
+        {
+            "input": _property("string", "Input CSV path."),
+            "output": _property("string", "Enriched CSV output path."),
+            "summary": _property("string", "Optional summary JSON path."),
+            "description_column": _property("string", "Description column.", default="description"),
+            "readout_column": _property("string", "Output readout column.", default="readout_class"),
+            "expression_column": _property("string", "Output expression column.", default="expression_system"),
+            "tag_column": _property("string", "Output tag column.", default="tag_class"),
+            "substrate_column": _property("string", "Output substrate column.", default="substrate_text"),
+            "process_timeout_seconds": _property("integer", "Process timeout.", default=600),
+        },
+        ["input", "output"],
+    ),
+    _tool(
+        "audit_metadata_coverage",
+        "Audit required metadata fields and enforce minimum coverage gates from a registry JSON or CSV.",
+        {
+            "input": _property("string", "Registry JSON or CSV path."),
+            "output": _property("string", "Coverage audit JSON path."),
+            "required_fields": _property("array", "Required metadata fields.", items={"type": "string"}),
+            "minimum_fraction": _property("number", "Minimum acceptable field coverage.", default=0.8),
+            "source_field": _property("string", "Source field for CSV input.", default="sources"),
+            "process_timeout_seconds": _property("integer", "Process timeout.", default=600),
+        },
+        ["input", "output", "required_fields"],
+    ),
+    _tool(
+        "build_assay_registry",
+        "Build an assay-level registry with row-aware values, group coverage, missing fields and context flags.",
+        {
+            "input": _property("string", "Input measurement CSV path."),
+            "output": _property("string", "Output assay registry JSON path."),
+            "assay_column": _property("string", "Assay identifier column.", default="assay_id"),
+            "compound_column": _property("string", "Compound/SMILES column.", default="canonical_smiles"),
+            "source_column": _property("string", "Source column.", default="source"),
+            "required_fields": _property("array", "Required assay metadata fields.", items={"type": "string"}),
+            "max_value_chars": _property("integer", "Maximum representative value length.", default=500),
+            "process_timeout_seconds": _property("integer", "Process timeout.", default=600),
+        },
+        ["input", "output"],
+    ),
+    _tool(
+        "build_source_acquisition_queue",
+        "Convert assay registry gaps into a prioritized source-acquisition queue with explicit next routes.",
+        {
+            "input": _property("string", "Assay registry JSON path."),
+            "output": _property("string", "Output queue CSV path."),
+            "summary": _property("string", "Optional summary JSON path."),
+            "priority_fields": _property("array", "Fields to prioritize for collection.", items={"type": "string"}),
+            "include_ready": _property("boolean", "Include assays with no priority gaps."),
+            "process_timeout_seconds": _property("integer", "Process timeout.", default=600),
+        },
+        ["input", "output"],
+    ),
+    _tool(
+        "build_context_model_dataset",
+        "Export context-aware modeling rows with explicit missingness flags and no imputation; write a manifest with split and coverage rules.",
+        {
+            "input": _property("string", "Input measurement CSV path."),
+            "output": _property("string", "Output model-ready CSV path."),
+            "manifest": _property("string", "Output model manifest JSON path."),
+            "assay_column": _property("string", "Assay split column.", default="assay_id"),
+            "model_fields": _property("array", "Fields required for model eligibility.", items={"type": "string"}),
+            "process_timeout_seconds": _property("integer", "Process timeout.", default=1200),
+        },
+        ["input", "output", "manifest"],
+    ),
+    _tool(
         "fetch_pdb_evidence",
         "Build a PDB evidence pack from RCSB citations, OA full text, supplements, reference chains, and optional patent candidates.",
         {
@@ -2376,6 +2752,14 @@ TOOLS = [
 
 HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "environment_check": environment_check,
+    "build_metadata_registry": build_metadata_registry,
+    "fetch_chembl_assay_metadata": fetch_chembl_assay_metadata,
+    "resolve_public_metadata": resolve_public_metadata,
+    "enrich_assay_text": enrich_assay_text,
+    "audit_metadata_coverage": audit_metadata_coverage,
+    "build_assay_registry": build_assay_registry,
+    "build_source_acquisition_queue": build_source_acquisition_queue,
+    "build_context_model_dataset": build_context_model_dataset,
     "fetch_pdb_evidence": fetch_pdb_evidence,
     "resolve_local_sources": resolve_local_sources,
     "query_orthogonal_sources": query_orthogonal_sources,
@@ -2415,6 +2799,26 @@ RESOURCE_FILES = {
     ),
     "pdb-curation://missing-reasons": SCHEMAS_DIR / "missing_reasons.json",
     "pdb-curation://skill": ROOT / "skill" / "pdb-affinity-mcp" / "SKILL.md",
+    "pdb-curation://database-collection-skill": (
+        ROOT.parents[1]
+        / "skills"
+        / "database-evidence-curation"
+        / "SKILL.md"
+    ),
+    "pdb-curation://database-collection-playbook": (
+        ROOT.parents[1]
+        / "skills"
+        / "database-evidence-curation"
+        / "references"
+        / "data-collection-playbook.md"
+    ),
+    "pdb-curation://modeling-handoff": (
+        ROOT.parents[1]
+        / "skills"
+        / "database-evidence-curation"
+        / "references"
+        / "modeling-handoff.md"
+    ),
 }
 
 
@@ -2503,9 +2907,11 @@ def process_request(request: dict[str, Any]) -> dict[str, Any] | None:
                     "version": SERVER_VERSION,
                 },
                 "instructions": (
-                    "Final data should be missing rather than wrong. Preserve "
-                    "source paths, hashes, blockers, missing reasons and human "
-                    "comparison denominators for every accepted or missing row."
+                    "Final data should be missing rather than wrong. This server "
+                    "supports PDB-linked affinity curation and general biomedical "
+                    "database evidence collection. Preserve source paths, hashes, "
+                    "blockers, missing reasons, metadata coverage and comparison "
+                    "denominators for every accepted or missing row."
                 ),
             },
         )
@@ -2627,6 +3033,7 @@ def main() -> None:
                 {
                     "server": SERVER_NAME,
                     "version": SERVER_VERSION,
+                    "description": SERVER_DESCRIPTION,
                     "tools": [tool["name"] for tool in TOOLS],
                     "resources": list(RESOURCE_FILES),
                     "environment": environment_check({}),
@@ -2695,10 +3102,9 @@ def main() -> None:
         response = process_request(request)
         if response is not None:
             write_message(response, framing)
-    with _CALL_STATE_LOCK:
-        active_ids = list(_CALL_CANCEL_EVENTS)
-    for request_id in active_ids:
-        cancel_request(request_id)
+    # EOF means no more requests, not cancellation. One-shot stdio clients
+    # close stdin after sending a request; cancel only on the explicit MCP
+    # notifications/cancelled message so those clients can receive results.
     for worker in workers:
         worker.join()
 

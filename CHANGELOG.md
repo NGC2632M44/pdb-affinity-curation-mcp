@@ -1,6 +1,33 @@
 # Changelog
 
+## [0.6.0] - 2026-11-16
+
+### Added
+
+- Assay-level registry with row counts, compound counts, field coverage,
+  context flags and explicit missing-field paths.
+- Source-acquisition queue generation with stable queue IDs, priority scores,
+  next-source routes and source hints.
+- Context-aware model handoff with `missing_model_fields`, `model_eligible` and
+  an assay-level split manifest. Missing values are never imputed.
+
 ## [Unreleased]
+
+### Added
+
+- General biomedical database evidence collection scope alongside PDB-linked
+  affinity curation.
+- `database-evidence-curation` Skill with metadata registry, ChEMBL assay
+  harvesting, public DOI/PMID/PMCID resolution, assay-text enrichment and
+  coverage-audit scripts.
+- MCP tools `build_metadata_registry`, `fetch_chembl_assay_metadata`,
+  `resolve_public_metadata`, `enrich_assay_text` and
+  `audit_metadata_coverage`.
+- MCP tools `build_assay_registry`, `build_source_acquisition_queue` and
+  `build_context_model_dataset`.
+- Crossref, DataCite, Europe PMC fullTextXML, Semantic Scholar and Unpaywall
+  source inventory entries.
+- Resources for the database-collection skill, playbook and modeling handoff.
 
 ### Added
 

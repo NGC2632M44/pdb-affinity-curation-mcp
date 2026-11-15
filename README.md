@@ -1,6 +1,7 @@
-# PDB Affinity Curation MCP
+# PDB and Biomedical Database Curation MCP
 
-一个面向 PDB 结构–化合物亲和力/活性数据整理的可审计 MCP 与配套 Skills。
+一个面向 PDB 结构–化合物亲和力/活性整理，以及通用生物医学数据库证据采集的
+可审计 MCP 与配套 Skills。
 
 核心原则：
 
@@ -19,6 +20,7 @@ skills/pdb-affinity-analysis/
 skills/pdb-affinity-output/
 skills/pdb-affinity-curation/
 skills/pdb-affinity-mcp/
+skills/database-evidence-curation/
 ```
 
 配套行为 Skill 也随 MCP 保留一份自包含副本：
@@ -43,6 +45,14 @@ mcp/pdb-curation-mcp/skill/pdb-affinity-mcp/
 - 表到缺失账本的 `PDB + ligand + context + field` 覆盖审计；
 - 严格 schema、人工审核比较、blocker closure、visual receipt 和最终验收；
 - SHA-256 run manifest、并发账本写锁和长任务取消。
+- 泛数据库 metadata registry：按 record grain 分组并计算字段/组覆盖率；
+- ChEMBL assay/document/target 全量元数据抓取与缓存；
+- Crossref、DataCite、Europe PMC 的 DOI/PMID/PMCID 解析；
+- assay 文本字段抽取（readout、expression、tag、substrate）；
+- assay 级 metadata registry，保留 row/compound 计数、字段覆盖率、上下文标志和缺失字段；
+- 缺失字段采集队列，按信息量和来源优先级生成下一步采集任务；
+- context-aware model handoff，显式标记 `missing_model_fields` 与 `model_eligible`，不插补缺失值；
+- required-field coverage gate，覆盖不足时阻止 context 模型训练。
 
 ## 运行要求
 

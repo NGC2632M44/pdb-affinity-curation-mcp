@@ -64,6 +64,14 @@ class ProtocolTests(unittest.TestCase):
         self.assertIn("record_missing_disposition", names)
         self.assertIn("audit_missing_traceability", names)
         self.assertIn("query_orthogonal_sources", names)
+        self.assertIn("build_metadata_registry", names)
+        self.assertIn("fetch_chembl_assay_metadata", names)
+        self.assertIn("resolve_public_metadata", names)
+        self.assertIn("enrich_assay_text", names)
+        self.assertIn("audit_metadata_coverage", names)
+        self.assertIn("build_assay_registry", names)
+        self.assertIn("build_source_acquisition_queue", names)
+        self.assertIn("build_context_model_dataset", names)
         tools_by_name = {tool["name"]: tool for tool in tools}
         self.assertIn("oneOf", tools_by_name["fetch_pdb_evidence"]["inputSchema"])
         self.assertIn("oneOf", tools_by_name["resolve_identity"]["inputSchema"])
@@ -84,11 +92,144 @@ class ProtocolTests(unittest.TestCase):
             {"jsonrpc": "2.0", "id": 3, "method": "resources/list", "params": {}}
         )
         resources = response["result"]["resources"]
-        self.assertGreaterEqual(len(resources), 7)
+        self.assertGreaterEqual(len(resources), 10)
         self.assertIn("pdb-curation://orthogonal-sources", {item["uri"] for item in resources})
+        self.assertIn("pdb-curation://database-collection-skill", {item["uri"] for item in resources})
         for resource in resources:
             read = server.resources_read({"uri": resource["uri"]})
             self.assertTrue(read["contents"][0]["text"])
+
+    def test_general_database_metadata_tools(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            csv_path = root / "rows.csv"
+            csv_path.write_text(
+                "assay_id,source,description,endpoint,target\n"
+                "A1,ChEMBL,FRET assay using peptide as substrate,IC50,3CLpro\n"
+                "A1,ChEMBL,SECOND ROW,IC50,3CLpro\n"
+                "A2,ChEMBL,fluorescence assay,IC50,PLpro\n",
+                encoding="utf-8",
+            )
+            registry = root / "registry.json"
+            with mock.patch.dict(
+                os.environ,
+                {"PDB_SKILL_ROOT": str(REPO_ROOT / "skills")},
+                clear=False,
+            ):
+                result = server.build_metadata_registry(
+                    {
+                        "input": str(csv_path),
+                        "output": str(registry),
+                        "id_columns": ["assay_id"],
+                        "required_fields": ["description", "endpoint", "target"],
+                    }
+                )
+                self.assertTrue(result["ok"], result)
+                payload = json.loads(registry.read_text(encoding="utf-8"))
+                self.assertEqual(payload["group_count"], 2)
+                self.assertEqual(payload["row_count"], 3)
+                enriched = root / "enriched.csv"
+                summary = root / "enrichment.json"
+                enriched_result = server.enrich_assay_text(
+                    {
+                        "input": str(csv_path),
+                        "output": str(enriched),
+                        "summary": str(summary),
+                    }
+                )
+                self.assertTrue(enriched_result["ok"], enriched_result)
+                support = json.loads(summary.read_text(encoding="utf-8"))
+                self.assertGreaterEqual(support["readout_present"], 2)
+                audit = root / "coverage.json"
+                audit_result = server.audit_metadata_coverage(
+                    {
+                        "input": str(registry),
+                        "output": str(audit),
+                        "required_fields": ["description", "endpoint", "target"],
+                        "minimum_fraction": 1.0,
+                    }
+                )
+                self.assertTrue(audit_result["ok"], audit_result)
+
+    def test_assay_registry_queue_and_context_model_handoff(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            csv_path = root / "measurements.csv"
+            csv_path.write_text(
+                "assay_id,canonical_smiles,p_activity,sequence,description,endpoint,"
+                "assay_type,readout_class,expression_system,tag_class,substrate_text,"
+                "target_chembl_id,doi\n"
+                "A1,C1,5.0,SEQ,desc,IC50,B,FRET,human,his,,T1,10.1000/x\n"
+                "A1,C2,6.0,SEQ,desc,IC50,B,FRET,human,his,,T1,10.1000/x\n"
+                "A2,C3,7.0,SEQ,desc2,IC50,B,,human,his,peptide,T2,10.1000/y\n",
+                encoding="utf-8",
+            )
+            registry = root / "assay_registry.json"
+            queue = root / "queue.csv"
+            dataset = root / "context_dataset.csv"
+            manifest = root / "context_manifest.json"
+            with mock.patch.dict(
+                os.environ,
+                {"PDB_SKILL_ROOT": str(REPO_ROOT / "skills")},
+                clear=False,
+            ):
+                result = server.build_assay_registry(
+                    {
+                        "input": str(csv_path),
+                        "output": str(registry),
+                        "required_fields": [
+                            "description",
+                            "endpoint",
+                            "readout_class",
+                            "substrate_text",
+                        ],
+                    }
+                )
+                self.assertTrue(result["ok"], result)
+                registry_payload = json.loads(registry.read_text(encoding="utf-8"))
+                self.assertEqual(registry_payload["assay_count"], 2)
+                self.assertEqual(
+                    registry_payload["field_coverage"]["substrate_text"]["present_groups"],
+                    1,
+                )
+
+                queue_result = server.build_source_acquisition_queue(
+                    {
+                        "input": str(registry),
+                        "output": str(queue),
+                        "priority_fields": ["substrate_text", "readout_class"],
+                    }
+                )
+                self.assertTrue(queue_result["ok"], queue_result)
+                with queue.open(encoding="utf-8", newline="") as handle:
+                    queue_rows = list(csv.DictReader(handle))
+                self.assertEqual(len(queue_rows), 2)
+                self.assertTrue(all(row["next_source"] for row in queue_rows))
+
+                dataset_result = server.build_context_model_dataset(
+                    {
+                        "input": str(csv_path),
+                        "output": str(dataset),
+                        "manifest": str(manifest),
+                        "model_fields": [
+                            "canonical_smiles",
+                            "p_activity",
+                            "sequence",
+                            "readout_class",
+                            "substrate_text",
+                        ],
+                    }
+                )
+                self.assertTrue(dataset_result["ok"], dataset_result)
+                context_manifest = json.loads(manifest.read_text(encoding="utf-8"))
+                self.assertEqual(context_manifest["row_count"], 3)
+                self.assertEqual(context_manifest["model_eligible_rows"], 0)
+                self.assertEqual(context_manifest["imputation"], "none")
+                self.assertEqual(context_manifest["missing_counts"]["substrate_text"], 2)
+                with dataset.open(encoding="utf-8", newline="") as handle:
+                    dataset_rows = list(csv.DictReader(handle))
+                self.assertEqual(dataset_rows[0]["model_eligible"], "0")
+                self.assertIn("substrate_text", dataset_rows[0]["missing_model_fields"])
 
     def test_orthogonal_source_inventory_has_roles_and_prohibited_uses(self) -> None:
         config = json.loads(

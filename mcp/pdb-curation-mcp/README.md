@@ -1,13 +1,15 @@
-# PDB Curation MCP
+# PDB and Biomedical Database Curation MCP
 
-Zero-dependency MCP server and companion Skill for traceable PDB-linked
-affinity, potency, target and sequence curation.
+Zero-dependency MCP server and companion Skills for traceable PDB-linked
+affinity curation and general biomedical database evidence collection across
+PDB, assay, target, sequence, compound, publication, dataset and patent records.
 
 ## 中文速览
 
-这个 MCP 把已有四个 PDB 文献/亲和力 Skill 串成可审计执行层。核心原则是
-“最终数据宁缺勿错”，但每个缺失项都必须有受控原因、检索范围、查过的来源、
-定位或阻断项；阻断项还必须能连回真实 blocker ledger。
+这个 MCP 既服务 PDB 亲和力整理，也服务泛数据库建设：source inventory、
+identifier normalization、assay/target metadata、文本字段抽取、coverage gate、
+missingness、blocker 和 run manifest。核心原则仍然是“最终数据宁缺勿错”，但
+每个缺失项都必须能回溯到检索范围、来源、定位或 blocker。
 
 本仓库以 `pdb-curation` 为 MCP 名称。工具清单或 Skill 描述变更后应重启
 Codex 会话使其重新发现。
@@ -23,6 +25,7 @@ This server wraps the installed phase Skills:
 - `pdb-affinity-analysis`
 - `pdb-affinity-output`
 - `pdb-affinity-curation`
+- `database-evidence-curation`
 
 ### Wrapped Skill map
 
@@ -32,6 +35,7 @@ This server wraps the installed phase Skills:
 | `pdb-affinity-analysis` | `extract_document_text`, `build_visual_review` | page-aware text, OCR consensus, numeric queues and visual review |
 | `pdb-affinity-output` | `validate_affinity_dataset`, `compare_to_human`, `crosscheck_sources`, `compare_curated_versions` | strict schema, source reconciliation, correction logs and comparison |
 | `pdb-affinity-curation` | `run_acceptance` | joint validator, blocker, human and visual acceptance gate |
+| `database-evidence-curation` | `build_metadata_registry`, `build_assay_registry`, `fetch_chembl_assay_metadata`, `resolve_public_metadata`, `enrich_assay_text`, `audit_metadata_coverage`, `build_source_acquisition_queue`, `build_context_model_dataset` | general source inventory, assay-level metadata harvesting, gap queues, context-model handoff and coverage gates |
 
 By default these Skills are resolved from `~/.codex/skills` and
 `~/.agents/skills`; set `PDB_SKILL_ROOT` to an explicit installation root.
@@ -52,6 +56,18 @@ behavior layer. No parsing or adjudication logic is duplicated in the Skill.
   manifest.
 - Human comparison reports separate coverage, value, endpoint, mutation,
   decision, evidence-correction and critical-false-accept metrics.
+- Arbitrary record grains can be grouped into a metadata registry with field
+  coverage and per-group missing-field diagnostics.
+- Assay-level registries preserve row counts, compound counts, field coverage,
+  context flags and missing-field paths without imputation.
+- Missing context fields become a prioritized source-acquisition queue with a
+  suggested next source and a traceable reason.
+- Context-aware model exports retain all rows, add explicit missingness flags
+  and a manifest that enforces assay-level split planning.
+- ChEMBL assay/document/target metadata can be harvested with cache receipts.
+- Assay descriptions can be enriched deterministically for readout, expression,
+  tag and substrate context.
+- Coverage gates block training when required context fields are too sparse.
 
 The server cannot prove that a human reviewer actually opened a paper. It
 enforces the minimum structured evidence needed to make that claim auditable and
@@ -61,10 +77,10 @@ rejectable.
 
 ```text
 MCP client
-  -> pdb-affinity-mcp Skill
-    -> PDB Curation MCP
-      -> installed PDB curation Skill scripts
-        -> evidence pack / extracted text / curated CSV
+  -> pdb-affinity-mcp or database-evidence-curation Skill
+    -> PDB and Biomedical Database Curation MCP
+      -> installed curation Skill scripts
+        -> evidence pack / metadata registry / coverage audit / curated CSV
 ```
 
 Protocol transport is stdio. Requests may be newline-delimited JSON or use
@@ -83,6 +99,7 @@ docs/PROJECT_LESSONS.md         observed data-collection failure patterns
 docs/CROSSCHECK_POLICY.md       source hierarchy and conflict rules
 docs/DATABASES.md               SciFinder/Reaxys/public source notes
 skill/pdb-affinity-mcp/         companion behavior Skill
+../skills/database-evidence-curation/  general database collection Skill
 tests/                          protocol, tool and traceability tests
 mcp.json.example                MCP client config template
 ```
@@ -151,6 +168,19 @@ Example client entry:
   peers.
 - `patmap_extract`: authorized patent PDFs when `PATMAP_API_KEY` exists.
 
+### General database building
+
+- `build_metadata_registry`: group a CSV by record grain and compute field/group
+  coverage plus required-field gaps.
+- `fetch_chembl_assay_metadata`: fetch ChEMBL assay metadata and optional linked
+  document and target records with a cache.
+- `resolve_public_metadata`: resolve DOI, PMID and PMCID metadata through
+  Crossref, DataCite and Europe PMC.
+- `enrich_assay_text`: derive readout, expression-system, tag and substrate text
+  from assay descriptions without model guesses.
+- `audit_metadata_coverage`: enforce required-field coverage gates before a
+  context-aware model is trained.
+
 ### Analysis
 
 - `extract_document_text`: page-aware text, OCR consensus, numeric queues and
@@ -202,6 +232,15 @@ Example client entry:
 15. `run_acceptance` with the missing-disposition ledger and final-table
     coverage columns.
 16. `create_run_manifest`.
+
+For general database construction, use:
+
+1. `build_metadata_registry`.
+2. `fetch_chembl_assay_metadata` and/or `resolve_public_metadata`.
+3. `enrich_assay_text`.
+4. `audit_metadata_coverage`.
+5. Resolve every gate failure through primary evidence or a blocker.
+6. Freeze the registry, coverage audit and source hashes before modeling.
 
 Do not skip from an evidence pack to an accepted table.
 
