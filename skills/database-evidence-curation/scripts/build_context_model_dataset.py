@@ -5,12 +5,21 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 from pathlib import Path
 
 
 def nonempty(value: object) -> bool:
     return value is not None and str(value).strip().lower() not in {"", "nan", "none", "null", "<na>"}
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def main() -> int:
@@ -62,7 +71,9 @@ def main() -> int:
         "ok": True,
         "schema_version": "context-model-dataset-v1",
         "input": str(args.input.resolve()),
+        "input_sha256": sha256_file(args.input),
         "output": str(args.output.resolve()),
+        "output_sha256": sha256_file(args.output),
         "row_count": len(rows),
         "assay_count": len(assay_ids),
         "model_fields": model_fields,
